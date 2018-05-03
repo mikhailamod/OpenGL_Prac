@@ -4,6 +4,9 @@
 #include "SDL.h"
 #include <GL/glew.h>
 
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+
 #include "glwindow.h"
 #include "geometry.h"
 
@@ -143,25 +146,43 @@ void OpenGLWindow::initGL()
     glGenVertexArrays(1, &vao);
     glBindVertexArray(vao);
 
+    // Projection matrix : 45° Field of View, 4:3 ratio, clipping planes 0.1, 100
+    glm::mat4 Projection = glm::perspective(glm::radians(60.0f), 640.0f / 480.0f, 0.1f, 100.0f);
+    // Camera matrix
+    glm::mat4 View = glm::lookAt(
+                                glm::vec3(4,3,0), // Camera is at (4,0,0) the x axis, in World Space
+                                glm::vec3(0,0,0), // look towards origin
+                                glm::vec3(0,1,0)  // Head is up
+                           );
+    glm::mat4 Model = glm::mat4(1.0f);//identity matrix - set at origin
+    glm::mat4 MVP = Projection * View * Model; // the model view projection
+
     // Note that this path is relative to your working directory
     // when running the program (IE if you run from within build
     // then you need to place these files in build as well)
     shader = loadShaderProgram("simple.vert", "simple.frag");
-    glUseProgram(shader);
+    //glUseProgram(shader);
+
+    MatrixID = glGetUniformLocation(shader, "MVP");
 
     int colorLoc = glGetUniformLocation(shader, "objectColor");
     glUniform3f(colorLoc, 1.0f, 1.0f, 1.0f);
 
     // Load the model that we want to use and buffer the vertex attributes
-    //GeometryData geometry = loadOBJFile("tri.obj");
+    GeometryData geometry;
+    geometry.loadFromOBJFile("../lib/objects/tri.obj");
 
     int vertexLoc = glGetAttribLocation(shader, "position");
-    float vertices[9] = { 0.0f,  0.5f, 0.0f,
+    float object_data[9] = { 0.0f,  0.5f, 0.0f,
                          -0.5f, -0.5f, 0.0f,
                           0.5f, -0.5f, 0.0f };
+    
+    //int num_vertices = geometry.vertexCount();
+    //void* object_data = geometry.vertexData();
+
     glGenBuffers(1, &vertexBuffer);
     glBindBuffer(GL_ARRAY_BUFFER, vertexBuffer);
-    glBufferData(GL_ARRAY_BUFFER, 9*sizeof(float), vertices, GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, 9*sizeof(float), object_data, GL_STATIC_DRAW);
     glVertexAttribPointer(vertexLoc, 3, GL_FLOAT, false, 0, 0);
     glEnableVertexAttribArray(vertexLoc);
 
@@ -171,6 +192,9 @@ void OpenGLWindow::initGL()
 void OpenGLWindow::render()
 {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    glUseProgram(shader);
+
+    glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &MVP[0][0]);
 
     glDrawArrays(GL_TRIANGLES, 0, 3);
 

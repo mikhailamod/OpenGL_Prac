@@ -2,6 +2,8 @@
 #define GL_WINDOW_H
 
 #include <GL/glew.h>
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
 
 #include "geometry.h"
 
@@ -21,6 +23,8 @@ private:
     GLuint vao;
     GLuint shader;
     GLuint vertexBuffer;
+    GLuint MatrixID;//used for camera
+    glm::mat4 MVP;
 };
 
 #endif

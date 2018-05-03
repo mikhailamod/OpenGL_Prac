@@ -1,7 +1,8 @@
 #include "SDL.h"
 
 #include "glwindow.h"
-
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
 // In order to make cross-platform development and deployment easy, SDL implements its own main
 // function, and instead calls out to our code at this SDL_main, however on linux this is not
 // needed (since the entrypoint in linux is already called main) so to keep things portable
