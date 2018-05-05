@@ -1,10 +1,10 @@
 #version 330 core
 
-uniform vec3 objectColor;
-
-out vec4 outColor;
+// Output data
+out vec3 objectColor;
 
 void main()
 {
-    outColor = vec4(objectColor,1);
+	// Output color = red
+	objectColor = vec3(1,0,0);
 }

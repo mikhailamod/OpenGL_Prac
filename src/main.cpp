@@ -1,3 +1,5 @@
+#include <string>
+#include <iostream>
 #include "SDL.h"
 
 #include "glwindow.h"
@@ -13,13 +15,21 @@ int main(int argc, char** argv)
 int SDL_main(int argc, char** argv)
 #endif
 {
+    if(argc < 2)
+    {
+        std::cout << "Usage: prac1 <path of an object>" << std::endl;
+        return 1;
+    }
     if(SDL_Init(SDL_INIT_VIDEO) != 0)
     {
         SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_INFORMATION, "Error", "Unable to initialize SDL", 0);
         return 1;
     }
 
+    std::string object_path(argv[1]);
+
     OpenGLWindow window;
+    window.object_1 = object_path;
     window.initGL();
 
     bool running = true;
