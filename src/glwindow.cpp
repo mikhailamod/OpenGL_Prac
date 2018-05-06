@@ -1,5 +1,6 @@
 #include <iostream>
 #include <stdio.h>
+#include <stdlib.h>
 
 #include "SDL.h"
 #include <GL/glew.h>
@@ -99,6 +100,11 @@ GLuint loadShaderProgram(const char* vertShaderFilename,
 
 OpenGLWindow::OpenGLWindow()
 {
+    axis = "z";
+}
+
+OpenGLWindow::~OpenGLWindow()
+{
 }
 
 
@@ -161,7 +167,7 @@ void OpenGLWindow::initGL()
     MatrixID = glGetUniformLocation(shader, "MVP");
 
     // Projection matrix : 45° Field of View, 4:3 ratio, display range : 0.1 unit <-> 100 units
-    Projection = glm::perspective(glm::radians(30.0f), 4.0f / 3.0f, 0.1f, 100.0f);
+    Projection = glm::perspective(glm::radians(FOV), 4.0f / 3.0f, 0.1f, 100.0f);
     // Camera matrix
     View = glm::lookAt(
                                 glm::vec3(4,3,3), // Camera is at (4,0,0) the x axis, in World Space
@@ -190,9 +196,22 @@ void OpenGLWindow::initGL()
     int num_vertices = geometry.vertexCount()*3;
     void* object_data = geometry.vertexData();
 
+    GLfloat color_data[num_vertices];
+
+    for (int i = 0; i < num_vertices; ++i)
+    {
+        float r = static_cast<float>(rand())/static_cast<float>(RAND_MAX);
+        color_data[i] = r;
+    }
+
     glGenBuffers(1, &vertexBuffer);
     glBindBuffer(GL_ARRAY_BUFFER, vertexBuffer);
     glBufferData(GL_ARRAY_BUFFER, num_vertices*sizeof(float), object_data, GL_STATIC_DRAW);
+
+    //for colours
+    glGenBuffers(1, &colorBuffer);
+    glBindBuffer(GL_ARRAY_BUFFER, colorBuffer);
+    glBufferData(GL_ARRAY_BUFFER, num_vertices*sizeof(float), color_data, GL_STATIC_DRAW);
     //glVertexAttribPointer(0, 3, GL_FLOAT, false, 0, 0);
     //glEnableVertexAttribArray(0);
 
@@ -212,6 +231,17 @@ void OpenGLWindow::render()
     glBindBuffer(GL_ARRAY_BUFFER, vertexBuffer);
     glVertexAttribPointer(
         0,                  // attribute. No particular reason for 0, but must match the layout in the shader.
+        3,                  // size
+        GL_FLOAT,           // type
+        GL_FALSE,           // normalized?
+        0,                  // stride
+        (void*)0            // array buffer offset
+    );
+
+    glEnableVertexAttribArray(1);
+    glBindBuffer(GL_ARRAY_BUFFER, colorBuffer);
+    glVertexAttribPointer(
+        1,                  // attribute. No particular reason for 1, but must match the layout in the shader.
         3,                  // size
         GL_FLOAT,           // type
         GL_FALSE,           // normalized?
@@ -244,7 +274,38 @@ bool OpenGLWindow::handleEvent(SDL_Event e)
         else if(e.key.keysym.sym == SDLK_t)//switch to rotation mode
         {
             mode = "transform";
-            std::cout << "Click " << mode << std::endl;
+            std::cout << "Transform mode activated\nClick some where to move the object" << std::endl;
+            return true;
+        }
+        else if(e.key.keysym.sym == SDLK_s)//switch to rotation mode
+        {
+            mode = "scale";
+            std::cout << "Scale mode activated\nLeft click to scale up.\nRight click to scale down" << std::endl;
+            return true;
+        }
+        else if (e.key.keysym.sym == SDLK_r)
+        {
+            mode = "rotate";
+            if(axis == "x"){axis = "y";}
+            else if(axis == "y"){axis = "z";}
+            else if(axis == "z"){axis = "x";}
+            std::string output = "Rotate mode\n"
+                                "Left/Right click to rotate";
+            std::cout << output << std::endl;
+            std::cout<< "Rotating on " << axis << " axis" << std::endl;
+            return true;
+        }
+        else if (e.key.keysym.sym == SDLK_z)
+        {
+            mode = "zoom";
+            std::cout << "Zoom mode" << std::endl;
+            return true;
+        }
+        else if (e.key.keysym.sym == SDLK_a)//add
+        {
+            mode = "add";
+            std::cout << "Add second object" << std::endl;
+            computeMatrices(mode, e);
             return true;
         }
     }
@@ -262,7 +323,7 @@ void OpenGLWindow::cleanup()
     SDL_DestroyWindow(sdlWin);
 }
 
-void OpenGLWindow::computeMatrices(std::string type, SDL_Event e)
+void OpenGLWindow::computeMatrices(std::string & type, SDL_Event e)
 {
     if(type == "transform")
     {
@@ -281,4 +342,87 @@ void OpenGLWindow::computeMatrices(std::string type, SDL_Event e)
         std::cout << "After: " << glm::to_string(Model) << std::endl;
         MVP = Projection * View * Model;
     }
+    else if(type == "scale")
+    {
+        float speed;
+
+        if(e.button.button == SDL_BUTTON_LEFT)//increase
+        {
+            speed = 2.0f;
+        }
+        else if(e.button.button == SDL_BUTTON_RIGHT)//increase
+        {
+            speed = -2.0f;
+        }
+
+        Model = glm::scale(Model, glm::vec3(speed,speed,1.0f));
+        MVP = Projection * View * Model;
+    }
+    else if(type == "rotate")
+    {
+        glm::vec3 axisOfRotation;
+        if(axis == "x"){axisOfRotation = glm::vec3(1,0,0);}
+        if(axis == "y"){axisOfRotation = glm::vec3(0,1,0);}
+        if(axis == "z"){axisOfRotation = glm::vec3(0,0,1);}
+
+         //left x, middle y, right z
+        float angle = 30.0f;
+        if(e.button.button == SDL_BUTTON_LEFT)
+        {
+            Model = glm::rotate(Model, glm::radians(angle), axisOfRotation);
+        }
+        else if(e.button.button == SDL_BUTTON_RIGHT)
+        {
+            Model = glm::rotate(Model, glm::radians(-1.0f*angle), axisOfRotation);
+        }
+        MVP = Projection * View * Model;
+    }
+    else if(type == "zoom")
+    {
+        if(e.button.button == SDL_BUTTON_LEFT)//increase
+        {
+            FOV -= 5.0f;
+        }
+        else if(e.button.button == SDL_BUTTON_RIGHT)//increase
+        {
+            FOV += 5.0f;
+        }
+
+        Projection = glm::perspective(glm::radians(FOV), 4.0f / 3.0f, 0.1f, 100.0f);
+        MVP = Projection * View * Model;
+    }
+    else if(type == "add")
+    {
+        Model = glm::mat4(1.0f);
+        MVP = Projection * View * Model;
+        std::cout << "Enter path of second object" << std::endl;
+        std::string path;
+        std::cin >> path;
+        addSecondObject(path);
+        mode = "none";
+    }
+}
+
+void OpenGLWindow::addSecondObject(std::string & path)
+{
+    geometry.loadFromOBJFile(path);
+    int num_vertices = geometry.vertexCount()*3;
+    void* object_data = geometry.vertexData();
+
+    GLfloat color_data[num_vertices];
+
+    for (int i = 0; i < num_vertices; ++i)
+    {
+        float r = static_cast<float>(rand())/static_cast<float>(RAND_MAX);
+        color_data[i] = r;
+    }
+
+    glGenBuffers(1, &vertexBuffer);
+    glBindBuffer(GL_ARRAY_BUFFER, vertexBuffer);
+    glBufferData(GL_ARRAY_BUFFER, num_vertices*sizeof(float), object_data, GL_STATIC_DRAW);
+
+    //for colours
+    glGenBuffers(1, &colorBuffer);
+    glBindBuffer(GL_ARRAY_BUFFER, colorBuffer);
+    glBufferData(GL_ARRAY_BUFFER, num_vertices*sizeof(float), color_data, GL_STATIC_DRAW);
 }
