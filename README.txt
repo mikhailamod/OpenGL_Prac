@@ -5,6 +5,7 @@ OpenGL assignment
 
 To compile: run make
 To run: cd into bin; ./prac1 <path of first object>
+e.g. ./prac1 ../lib/tri.obj
 
 Objects are located in: lib/objects
 
@@ -20,3 +21,9 @@ To rotate: press 't' to enter rotate. Program will print to console to say which
 To zoom: press 'z' to enter zoom mode. Left click to zoom in, right click to zoom out. This is different to scale because this changes the field of view.
 
 To add second object: press 'a' to add second object. Console will prompt you to enter path of second object. This is relative to the bin folder. Mode will then reset to none. Transformation will reset.
+
+Note - In glwindow.cpp I am using the LoadShaders method from the shaders.cpp file.
+This file was included with the matrices example provided to us.
+All credit is given to the original author.
+It was originally from - http://www.opengl-tutorial.org/
+Original source code available at: https://github.com/opengl-tutorials/ogl

@@ -210,7 +210,6 @@ void OpenGLWindow::initGL()
 
 void OpenGLWindow::render()
 {
-    //std::cout << "debug" << std::endl;
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glUseProgram(shader);
 
@@ -374,7 +373,6 @@ void OpenGLWindow::computeMatrices(std::string & type, SDL_Event e)
         if(axis == "y"){axisOfRotation = glm::vec3(0,1,0);}
         if(axis == "z"){axisOfRotation = glm::vec3(0,0,1);}
 
-         //left x, middle y, right z
         float angle = 30.0f;
         if(e.button.button == SDL_BUTTON_LEFT)
         {
@@ -412,6 +410,7 @@ void OpenGLWindow::computeMatrices(std::string & type, SDL_Event e)
     }
 }
 
+//given a path of an object, load it into geometry, generate random colours and reload buffers.
 void OpenGLWindow::addSecondObject(std::string & path)
 {
     geometry.loadFromOBJFile(path);
@@ -426,6 +425,7 @@ void OpenGLWindow::addSecondObject(std::string & path)
         color_data[i] = r;
     }
 
+    //relaod buffers
     glGenBuffers(1, &vertexBuffer);
     glBindBuffer(GL_ARRAY_BUFFER, vertexBuffer);
     glBufferData(GL_ARRAY_BUFFER, num_vertices*sizeof(float), object_data, GL_STATIC_DRAW);

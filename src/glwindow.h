@@ -11,9 +11,9 @@
 class OpenGLWindow
 {
 public:
-    std::string object_1;
-    std::string mode;
-    std::string axis;
+    std::string object_1;//path of first object (parsed from main.cpp)
+    std::string mode;//the current transformation mode
+    std::string axis;//the current axis in transformation
     OpenGLWindow();
     ~OpenGLWindow();
 
@@ -36,16 +36,15 @@ private:
     GLuint colorBuffer;
     GLuint MatrixID;//used for camera
     
+    //matrices for MVP model
     glm::mat4 Projection;
     glm::mat4 View;
     glm::mat4 Model;
     glm::mat4 MVP;
     
-    GeometryData geometry;
+    GeometryData geometry;//geometry for object/s
 
-    glm::vec3 position = glm::vec3(0,0,5);
-    float speed = 3.0f;
-    float FOV = 30.0f;
+    float FOV = 30.0f;//original angle of field of view
 };
 
 #endif
