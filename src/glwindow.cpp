@@ -159,51 +159,43 @@ void OpenGLWindow::initGL()
     glGenVertexArrays(1, &vao);
     glBindVertexArray(vao);
 
-    // Note that this path is relative to your working directory
-    // when running the program (IE if you run from within build
-    // then you need to place these files in build as well)
+    //Note - I am using the LoadShaders method from the shaders.cpp file.
+    //This file was included with the matrices example provided to us.
+    //It was originally from - http://www.opengl-tutorial.org/
+    //Original source code available at: https://github.com/opengl-tutorials/ogl
     shader = LoadShaders("simple.vert", "simple.frag");
 
     MatrixID = glGetUniformLocation(shader, "MVP");
 
-    // Projection matrix : 45° Field of View, 4:3 ratio, display range : 0.1 unit <-> 100 units
+    // Projection matrix : 30° Field of View, 4:3 ratio, display range : 0.1 unit <-> 100 units
     Projection = glm::perspective(glm::radians(FOV), 4.0f / 3.0f, 0.1f, 100.0f);
     // Camera matrix
     View = glm::lookAt(
-                                glm::vec3(4,3,3), // Camera is at (4,0,0) the x axis, in World Space
-                                glm::vec3(0,0,0), // look towards origin
+                                glm::vec3(3,3,3), // Camera position
+                                glm::vec3(0,0,0), // camera looks towards
                                 glm::vec3(0,1,0)  // Head is up
                            );
-    Model = glm::mat4(1.0f);//identity matrix - set at origin
+    Model = glm::mat4(1.0f);//identity matrix - sets the model at the origin
     
     MVP = Projection * View * Model; // the model view projection
     glUseProgram(shader);
 
-    //int colorLoc = glGetUniformLocation(shader, "objectColor");
-    //glUniform3f(colorLoc, 1.0f, 1.0f, 1.0f);
-
     // Load the model that we want to use and buffer the vertex attributes
     geometry.loadFromOBJFile(object_1);
-
-    //int vertexLoc = glGetAttribLocation(shader, "position");
-    /*static const GLfloat object_data[] = {
-        -1.0f, -1.0f, 0.0f,
-         1.0f, -1.0f, 0.0f,
-         0.0f,  1.0f, 0.0f,
-    };
-    */
     
     int num_vertices = geometry.vertexCount()*3;
     void* object_data = geometry.vertexData();
 
     GLfloat color_data[num_vertices];
 
+    //generate random colours
     for (int i = 0; i < num_vertices; ++i)
     {
         float r = static_cast<float>(rand())/static_cast<float>(RAND_MAX);
         color_data[i] = r;
     }
 
+    //for vertices
     glGenBuffers(1, &vertexBuffer);
     glBindBuffer(GL_ARRAY_BUFFER, vertexBuffer);
     glBufferData(GL_ARRAY_BUFFER, num_vertices*sizeof(float), object_data, GL_STATIC_DRAW);
@@ -211,9 +203,7 @@ void OpenGLWindow::initGL()
     //for colours
     glGenBuffers(1, &colorBuffer);
     glBindBuffer(GL_ARRAY_BUFFER, colorBuffer);
-    glBufferData(GL_ARRAY_BUFFER, num_vertices*sizeof(float), color_data, GL_STATIC_DRAW);
-    //glVertexAttribPointer(0, 3, GL_FLOAT, false, 0, 0);
-    //glEnableVertexAttribArray(0);
+    glBufferData(GL_ARRAY_BUFFER, num_vertices*sizeof(float), color_data, GL_STATIC_DRAW);;
 
     glPrintError("Setup complete", true);
 }
@@ -226,31 +216,31 @@ void OpenGLWindow::render()
 
     glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &MVP[0][0]);
 
-    // 1rst attribute buffer : vertices
+    // For vertices
     glEnableVertexAttribArray(0);
     glBindBuffer(GL_ARRAY_BUFFER, vertexBuffer);
     glVertexAttribPointer(
-        0,                  // attribute. No particular reason for 0, but must match the layout in the shader.
-        3,                  // size
-        GL_FLOAT,           // type
-        GL_FALSE,           // normalized?
-        0,                  // stride
-        (void*)0            // array buffer offset
+        0,                  // 0 to match number in shader
+        3,                  
+        GL_FLOAT,           
+        GL_FALSE,           
+        0,                  
+        (void*)0            
     );
 
     glEnableVertexAttribArray(1);
     glBindBuffer(GL_ARRAY_BUFFER, colorBuffer);
     glVertexAttribPointer(
         1,                  // attribute. No particular reason for 1, but must match the layout in the shader.
-        3,                  // size
-        GL_FLOAT,           // type
-        GL_FALSE,           // normalized?
-        0,                  // stride
-        (void*)0            // array buffer offset
+        3,                  
+        GL_FLOAT,           
+        GL_FALSE,           
+        0,                  
+        (void*)0            
     );
     
 
-    glDrawArrays(GL_TRIANGLES, 0, geometry.vertexCount()*3);
+    glDrawArrays(GL_TRIANGLES, 0, geometry.vertexCount()*3);//vertexCount returns vertices/3
 
     glDisableVertexAttribArray(0);
 
@@ -271,27 +261,40 @@ bool OpenGLWindow::handleEvent(SDL_Event e)
         {
             return false;
         }
-        else if(e.key.keysym.sym == SDLK_t)//switch to rotation mode
+        //switch to transform mode
+        else if(e.key.keysym.sym == SDLK_t)
         {
-            mode = "transform";
-            std::cout << "Transform mode activated\nClick some where to move the object" << std::endl;
+            if(mode != "translate")
+            {
+                std::cout << "Translate mode activated" << std::endl;
+            }
+            mode = "translate";
+            if(axis == "x"){axis = "y";}
+            else if(axis == "y"){axis = "z";}
+            else if(axis == "z"){axis = "x";}
+            std::cout<< "Translating on " << axis << " axis" << std::endl;
             return true;
         }
-        else if(e.key.keysym.sym == SDLK_s)//switch to rotation mode
+        //switch to scale mode
+        else if(e.key.keysym.sym == SDLK_s)
         {
             mode = "scale";
             std::cout << "Scale mode activated\nLeft click to scale up.\nRight click to scale down" << std::endl;
             return true;
         }
+        //switch to rotation mode
         else if (e.key.keysym.sym == SDLK_r)
         {
+            if(mode != "rotate")
+            {
+                std::string output = "Rotate mode\n"
+                                "Left/Right click to rotate";
+                std::cout << output << std::endl;
+            }
             mode = "rotate";
             if(axis == "x"){axis = "y";}
             else if(axis == "y"){axis = "z";}
             else if(axis == "z"){axis = "x";}
-            std::string output = "Rotate mode\n"
-                                "Left/Right click to rotate";
-            std::cout << output << std::endl;
             std::cout<< "Rotating on " << axis << " axis" << std::endl;
             return true;
         }
@@ -301,7 +304,8 @@ bool OpenGLWindow::handleEvent(SDL_Event e)
             std::cout << "Zoom mode" << std::endl;
             return true;
         }
-        else if (e.key.keysym.sym == SDLK_a)//add
+        //switch to mode to add second object
+        else if (e.key.keysym.sym == SDLK_a)
         {
             mode = "add";
             std::cout << "Add second object" << std::endl;
@@ -309,6 +313,7 @@ bool OpenGLWindow::handleEvent(SDL_Event e)
             return true;
         }
     }
+    //once mouse is clicked, calculate changes to make to MVP
     else if(e.type == SDL_MOUSEBUTTONDOWN)
     {
         computeMatrices(mode, e);
@@ -323,23 +328,27 @@ void OpenGLWindow::cleanup()
     SDL_DestroyWindow(sdlWin);
 }
 
+//Given a transformation type, compute the changes to the MVP
 void OpenGLWindow::computeMatrices(std::string & type, SDL_Event e)
 {
-    if(type == "transform")
+    if(type == "translate")
     {
         float speed = 1.0f;
-        //get x and y of mouse press
-        float x = (float)e.button.x;
-        float y = (float)e.button.y;
-        float change_x;
-        float change_y;
-        if(x > 320){ change_x = speed;}
-        else {change_x = -1.0f*speed;}
-        if(y < 240){ change_y = speed;}
-        else {change_y = -1.0f*speed;}
-        std::cout << "Before: " << glm::to_string(Model) << std::endl;
-        Model = glm::translate(Model, glm::vec3(change_x,change_y,0.0f));
-        std::cout << "After: " << glm::to_string(Model) << std::endl;
+        glm::vec3 translateVec;
+        
+        if(e.button.button == SDL_BUTTON_LEFT)//increase
+        {
+            speed = 1.0f;
+        }
+        else if(e.button.button == SDL_BUTTON_RIGHT)//increase
+        {
+            speed = -1.0f;
+        }
+        
+        if(axis == "x"){translateVec = glm::vec3(speed,0,0);}
+        if(axis == "y"){translateVec = glm::vec3(0,speed,0);}
+        if(axis == "z"){translateVec = glm::vec3(0,0,speed);}
+        Model = glm::translate(Model, translateVec);
         MVP = Projection * View * Model;
     }
     else if(type == "scale")
@@ -352,10 +361,10 @@ void OpenGLWindow::computeMatrices(std::string & type, SDL_Event e)
         }
         else if(e.button.button == SDL_BUTTON_RIGHT)//increase
         {
-            speed = -2.0f;
+            speed = 0.5f;
         }
 
-        Model = glm::scale(Model, glm::vec3(speed,speed,1.0f));
+        Model = glm::scale(Model, glm::vec3(speed,speed,speed));
         MVP = Projection * View * Model;
     }
     else if(type == "rotate")
